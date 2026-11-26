@@ -2,51 +2,49 @@ import numpy as np
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
-# --- 1. Define the SIR Model Equations ---
-def sir_model(y, t, beta, gamma):
-    """
-    Returns the derivatives for the SIR model.
-    y: [S, I, R] at time t
-    beta: transmission rate
-    gamma: recovery rate
-    """
-    S, I, R = y
-    N = S + I + R # Total population, assumed constant
-    dSdt = -beta * S * I / N
-    dIdt = beta * S * I / N - gamma * I
-    dRdt = gamma * I
-    return [dSdt, dIdt, dRdt]
+def sid_model(y, t, beta, mu, nu):
+    S, I, D = y
+    dSdt = -beta * S * I + nu * S
+    dIdt = beta * S * I - mu * I
+    dDdt = mu * I
+    return [dSdt, dIdt, dDdt]
 
-# --- 2. Set Parameters and Initial Conditions ---
-# Parameters
-beta = 0.3   # Average number of contacts per person per time
-gamma = 1/5  # Recovery rate (1/5 means average infectious period of 5 days)
+beta = 0.003
+mu = 0.02
+nu = 0.01
 
-# Initial conditions: 999 susceptible, 1 infected, 0 recovered
-N = 1000
-S0 = N - 1
+N = 100
+S0 = 99
 I0 = 1
-R0 = 0
-initial_conditions = [S0, I0, R0]
+D0 = 0
+initial_conditions = [S0, I0, D0]
 
-# Time vector (simulate for 160 days)
-t = np.linspace(0, 160, 160)
+t = np.linspace(0, 200, 200)
 
-# --- 3. Solve the ODEs ---
-# The odeint function integrates the equations
-solution = odeint(sir_model, initial_conditions, t, args=(beta, gamma))
+solution = odeint(sid_model, initial_conditions, t, args=(beta, mu, nu))
+S, I, D = solution.T
 
-# Extract the results
-S, I, R = solution.T
-
-# --- 4. Plot the Results ---
-plt.figure(figsize=(10, 6))
-plt.plot(t, S, label='Susceptible', linewidth=2)
-plt.plot(t, I, label='Infected', linewidth=2)
-plt.plot(t, R, label='Recovered', linewidth=2)
+plt.figure(figsize=(12, 6))
+plt.plot(t, S, label='Susceptible', linewidth=2, color='blue')
+plt.plot(t, I, label='Infected', linewidth=2, color='orange')
+plt.plot(t, D, label='Deaths', linewidth=2, color='red', linestyle='--')
 plt.xlabel('Time (days)')
 plt.ylabel('Number of Individuals')
-plt.title('SIR Model Simulation')
+plt.title('SID Model Simulation with P[S] = νS')
 plt.legend()
-plt.grid(True)
-plt.show()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('sid_model_output.png', dpi=150, bbox_inches='tight')
+print("Plot saved to sid_model_output.png")
+
+peak_infected = np.max(I)
+peak_day = t[np.argmax(I)]
+final_deaths = D[-1]
+final_susceptible = S[-1]
+total_population = S[-1] + I[-1] + D[-1]
+
+print("\n=== Model Summary ===")
+print(f"Peak infected: {peak_infected:.1f} people on day {peak_day:.1f}")
+print(f"Final deaths: {final_deaths:.1f} people")
+print(f"Final susceptible: {final_susceptible:.1f} people")
+print(f"Total population (final): {total_population:.1f}")
